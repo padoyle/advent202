@@ -7,7 +7,7 @@ fn process_input() -> Vec<u32> {
         .collect()
 }
 
-fn sum_2020(inputs: &Vec<u32>) -> (u32, u32) {
+fn sum2_2020(inputs: &Vec<u32>) -> (u32, u32) {
     let length = inputs.len();
     // Extremely naive approach o.O
     for i in 0..length {
@@ -15,9 +15,9 @@ fn sum_2020(inputs: &Vec<u32>) -> (u32, u32) {
             if i == j {
                 continue;
             }
-            let (first, second) = (inputs[i], inputs[j]);
-            if first + second == 2020 {
-                return (first, second);
+            let (a, b) = (inputs[i], inputs[j]);
+            if a + b == 2020 {
+                return (a, b);
             }
         }
     }
@@ -25,11 +25,38 @@ fn sum_2020(inputs: &Vec<u32>) -> (u32, u32) {
     unreachable!("Input contained no valid answer");
 }
 
-pub fn get_p1_answer() -> u32 {
+fn sum3_2020(inputs: &Vec<u32>) -> (u32, u32, u32) {
+    let length = inputs.len();
+    // Extremely naive approach o.O
+    for i in 0..length {
+        for j in 0..length {
+            for k in 0..length {
+                if i == j || j == k || i == k {
+                    continue;
+                }
+                let (a, b, c) = (inputs[i], inputs[j], inputs[k]);
+                if a + b + c == 2020 {
+                    return (a, b, c);
+                }
+            }
+        }
+    }
+
+    unreachable!("Input contained no valid answer");
+}
+
+pub fn p1() -> u32 {
     let inputs = process_input();
-    let (a, b) = sum_2020(&inputs);
+    let (a, b) = sum2_2020(&inputs);
 
     a * b
+}
+
+pub fn p2() -> u32 {
+    let inputs = process_input();
+    let (a, b, c) = sum3_2020(&inputs);
+
+    a * b * c
 }
 
 #[cfg(test)]
@@ -39,7 +66,7 @@ mod test {
     #[test]
     fn p1_simple() {
         let inputs = vec![123, 1897];
-        let (a, b) = sum_2020(&inputs);
+        let (a, b) = sum2_2020(&inputs);
 
         assert_eq!(a * b, 123 * 1897);
     }
@@ -47,7 +74,7 @@ mod test {
     #[test]
     fn p1_no_reuse() {
         let inputs = vec![1010, 2000, 20];
-        let (a, b) = sum_2020(&inputs);
+        let (a, b) = sum2_2020(&inputs);
 
         assert_eq!(a * b, 2000 * 20);
     }
@@ -55,7 +82,7 @@ mod test {
     #[test]
     fn p1_example() {
         let inputs = vec![1721, 979, 366, 299, 675, 1456];
-        let (a, b) = sum_2020(&inputs);
+        let (a, b) = sum2_2020(&inputs);
 
         assert_eq!(a * b, 514579);
     }
@@ -63,8 +90,24 @@ mod test {
     #[test]
     fn p1_correct_answer() {
         let inputs = process_input();
-        let (a, b) = sum_2020(&inputs);
+        let (a, b) = sum2_2020(&inputs);
 
         assert_eq!(a * b, 224436);
+    }
+
+    #[test]
+    fn p2_simple() {
+        let inputs = vec![123, 1800, 97];
+        let (a, b, c) = sum3_2020(&inputs);
+
+        assert_eq!(a * b * c, 123 * 1800 * 97);
+    }
+
+    #[test]
+    fn p2_example() {
+        let inputs = vec![1721, 979, 366, 299, 675, 1456];
+        let (a, b, c) = sum3_2020(&inputs);
+
+        assert_eq!(a * b * c, 241861950);
     }
 }

@@ -8,7 +8,7 @@ fn main() {
 
     let answer = match day {
         1 => {
-            format!("P1:\n{}\n\nP2:\nNYI", day_01::get_p1_answer())
+            format!("P1:\n{}\n\nP2:\n{}", day_01::p1(), day_01::p2())
         }
         _ => "".to_string(),
     };
