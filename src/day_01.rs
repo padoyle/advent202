@@ -1,9 +1,10 @@
-static INPUT: &'static str  = include_str!("assets/day_01_input.txt");
+static INPUT: &'static str = include_str!("assets/day_01_input.txt");
 
 fn process_input() -> Vec<u32> {
-    INPUT.lines().map(|line| {
-        line.parse::<u32>().expect("malformed input")
-    }).collect()
+    INPUT
+        .lines()
+        .map(|line| line.parse::<u32>().expect("malformed input"))
+        .collect()
 }
 
 fn sum_2020(inputs: &Vec<u32>) -> (u32, u32) {
@@ -16,7 +17,7 @@ fn sum_2020(inputs: &Vec<u32>) -> (u32, u32) {
             }
             let (first, second) = (inputs[i], inputs[j]);
             if first + second == 2020 {
-                return (first, second)
+                return (first, second);
             }
         }
     }
@@ -57,5 +58,13 @@ mod test {
         let (a, b) = sum_2020(&inputs);
 
         assert_eq!(a * b, 514579);
+    }
+
+    #[test]
+    fn p1_correct_answer() {
+        let inputs = process_input();
+        let (a, b) = sum_2020(&inputs);
+
+        assert_eq!(a * b, 224436);
     }
 }
