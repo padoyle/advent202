@@ -67,13 +67,32 @@ fn get_valid_passwords_p1(passwords: Vec<(Rule, &'static str)>) -> usize {
         .count()
 }
 
+fn is_valid_p2(rule: &Rule, pass: &str) -> bool {
+    let chars: Vec<char> = pass.chars().collect();
+    (chars[rule.min - 1] == rule.letter) ^ (chars[rule.max - 1] == rule.letter)
+}
+
+fn get_valid_passwords_p2(passwords: Vec<(Rule, &'static str)>) -> usize {
+    passwords
+        .iter()
+        .filter_map(|(rule, pass)| {
+            if is_valid_p2(rule, pass) {
+                Some(true)
+            } else {
+                None
+            }
+        })
+        .count()
+}
+
 pub fn p1() -> usize {
     let input = process_input(INPUT);
     get_valid_passwords_p1(input)
 }
 
 pub fn p2() -> usize {
-    0
+    let input = process_input(INPUT);
+    get_valid_passwords_p2(input)
 }
 
 #[cfg(test)]
@@ -107,5 +126,34 @@ mod test {
         let input = process_input(INPUT);
 
         assert_eq!(542, get_valid_passwords_p1(input));
+    }
+
+    #[test]
+    fn p2_example() {
+        let input = vec![
+            (Rule::new(1, 3, 'a'), "abcde"),
+            (Rule::new(1, 3, 'b'), "cdefg"),
+            (Rule::new(2, 9, 'c'), "ccccccccc"),
+        ];
+
+        assert_eq!(1, get_valid_passwords_p2(input));
+    }
+
+    #[test]
+    fn p2_range_edges() {
+        let input = vec![
+            (Rule::new(1, 3, 'a'), "abcde"),
+            (Rule::new(1, 3, 'a'), "bcade"),
+            (Rule::new(1, 3, 'a'), "bcdae"),
+        ];
+
+        assert_eq!(2, get_valid_passwords_p2(input));
+    }
+
+    #[test]
+    fn p2_correct_answer() {
+        let input = process_input(INPUT);
+
+        assert_eq!(360, get_valid_passwords_p2(input));
     }
 }

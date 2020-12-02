@@ -12,7 +12,7 @@ fn main() {
             format!("P1:\n{}\n\nP2:\n{}", day_01::p1(), day_01::p2())
         }
         2 => {
-            format!("P1:\n{}\n\nP2:\nNYI", day_02::p1() /*day_02::p2()*/,)
+            format!("P1:\n{}\n\nP2:\n{}", day_02::p1(), day_02::p2())
         }
         _ => "".to_string(),
     };
