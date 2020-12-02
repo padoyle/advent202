@@ -1,6 +1,7 @@
 use std::env::args;
 
 mod day_01;
+mod day_02;
 
 fn main() {
     let args: Vec<String> = args().collect();
@@ -9,6 +10,9 @@ fn main() {
     let answer = match day {
         1 => {
             format!("P1:\n{}\n\nP2:\n{}", day_01::p1(), day_01::p2())
+        }
+        2 => {
+            format!("P1:\n{}\n\nP2:\nNYI", day_02::p1() /*day_02::p2()*/,)
         }
         _ => "".to_string(),
     };
