@@ -38,25 +38,39 @@ fn parse_input(input: &'static str) -> TreeGrid {
     TreeGrid { width, trees }
 }
 
-fn find_trees_p1(tree_grid: &TreeGrid) -> usize {
+fn find_trees(tree_grid: &TreeGrid, row_step: usize, col_step: usize) -> usize {
     let mut count = 0;
-    for row in 0..tree_grid.height() {
-        if tree_grid.has_tree_at(row, row * 3) {
+    let mut col = 0;
+    for row in (0..tree_grid.height()).step_by(row_step) {
+        if tree_grid.has_tree_at(row, col) {
             count += 1;
         }
+        col += col_step;
     }
     count
 }
 
-pub fn p1() -> usize {
-    let tree_grid = parse_input(INPUT);
-    find_trees_p1(&tree_grid)
+fn multiply_paths(tree_grid: &TreeGrid) -> usize {
+    vec![
+        find_trees(tree_grid, 1, 1),
+        find_trees(tree_grid, 1, 3),
+        find_trees(tree_grid, 1, 5),
+        find_trees(tree_grid, 1, 7),
+        find_trees(tree_grid, 2, 1),
+    ]
+    .iter()
+    .fold(1, |acc, value| acc * value)
 }
 
-// pub fn p2() -> usize {
-//     let input = process_input(INPUT);
-//     get_valid_passwords_p2(input)
-// }
+pub fn p1() -> usize {
+    let tree_grid = parse_input(INPUT);
+    find_trees(&tree_grid, 1, 3)
+}
+
+pub fn p2() -> usize {
+    let tree_grid = parse_input(INPUT);
+    multiply_paths(&tree_grid)
+}
 
 #[cfg(test)]
 mod test {
@@ -77,7 +91,7 @@ mod test {
     #[test]
     fn p1_example() {
         let tree_grid = parse_input(EXAMPLE);
-        let tree_count = find_trees_p1(&tree_grid);
+        let tree_count = find_trees(&tree_grid, 1, 3);
 
         assert_eq!(7, tree_count);
     }
@@ -85,8 +99,24 @@ mod test {
     #[test]
     fn p1_correct_answer() {
         let tree_grid = parse_input(INPUT);
-        let tree_count = find_trees_p1(&tree_grid);
+        let tree_count = find_trees(&tree_grid, 1, 3);
 
         assert_eq!(292, tree_count);
+    }
+
+    #[test]
+    fn p2_example() {
+        let tree_grid = parse_input(EXAMPLE);
+        let multiplied_paths = multiply_paths(&tree_grid);
+
+        assert_eq!(336, multiplied_paths);
+    }
+
+    #[test]
+    fn p2_correct_answer() {
+        let tree_grid = parse_input(INPUT);
+        let multiplied = multiply_paths(&tree_grid);
+
+        assert_eq!(9354744432, multiplied);
     }
 }
