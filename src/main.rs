@@ -2,6 +2,7 @@ use std::env::args;
 
 mod day_01;
 mod day_02;
+mod day_03;
 
 fn main() {
     let args: Vec<String> = args().collect();
@@ -13,6 +14,9 @@ fn main() {
         }
         2 => {
             format!("P1:\n{}\n\nP2:\n{}", day_02::p1(), day_02::p2())
+        }
+        3 => {
+            format!("P1:\n{}\n\nP2:\nNYI", day_03::p1() /*, day_03::p2()*/)
         }
         _ => "".to_string(),
     };
