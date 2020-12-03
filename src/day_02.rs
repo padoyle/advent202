@@ -8,12 +8,6 @@ struct Rule {
     letter: char,
 }
 
-impl Rule {
-    fn new(min: usize, max: usize, letter: char) -> Self {
-        Self { min, max, letter }
-    }
-}
-
 impl FromStr for Rule {
     type Err = &'static str;
 
@@ -98,6 +92,12 @@ pub fn p2() -> usize {
 #[cfg(test)]
 mod test {
     use super::*;
+
+    impl Rule {
+        fn new(min: usize, max: usize, letter: char) -> Self {
+            Self { min, max, letter }
+        }
+    }
 
     #[test]
     fn p1_example() {
