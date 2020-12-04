@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate maplit;
+
 use std::env::args;
 
 mod day_01;
@@ -13,7 +16,7 @@ fn main() {
         1 => format!("P1:\n{}\n\nP2:\n{}", day_01::p1(), day_01::p2()),
         2 => format!("P1:\n{}\n\nP2:\n{}", day_02::p1(), day_02::p2()),
         3 => format!("P1:\n{}\n\nP2:\n{}", day_03::p1(), day_03::p2()),
-        4 => format!("P1:\n{}\n\nP2:\n{}", day_04::p1(), day_03::p2()),
+        4 => format!("P1:\n{}\n\nP2:\n{}", day_04::p1(), day_04::p2()),
         _ => "".to_string(),
     };
 
