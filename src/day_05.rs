@@ -1,8 +1,8 @@
 static INPUT: &'static str = include_str!("assets/day_05_input.txt");
 
-fn get_seat_id(boarding_pass: &str) -> u32 {
-    let mut row: u32 = 0;
-    let mut col: u32 = 0;
+fn get_seat_id(boarding_pass: &str) -> usize {
+    let mut row: usize = 0;
+    let mut col: usize = 0;
     for c in boarding_pass[..7].chars() {
         if c == 'B' {
             row += 1;
@@ -19,20 +19,31 @@ fn get_seat_id(boarding_pass: &str) -> u32 {
     (row >> 1) * 8 + (col >> 1)
 }
 
-fn highest_seat_id(input: &str) -> u32 {
-    input
-        .lines()
-        .map(|boarding_pass| get_seat_id(boarding_pass))
-        .max()
-        .expect("invalid input")
+fn highest_seat_id(input: &str) -> usize {
+    input.lines().map(get_seat_id).max().expect("invalid input")
 }
 
-pub fn p1() -> u32 {
+fn find_missing_seat(input: &str) -> usize {
+    let mut filled_seats: Vec<usize> = input.lines().map(get_seat_id).collect();
+    filled_seats.sort();
+
+    // I'm certain there's a better fit for this than `fold` *shrug*
+    let seat_before_missing = filled_seats.iter().fold(filled_seats[0], |prev, &value| {
+        if prev + 1 == value {
+            value
+        } else {
+            prev
+        }
+    });
+    seat_before_missing + 1
+}
+
+pub fn p1() -> usize {
     highest_seat_id(INPUT)
 }
 
 pub fn p2() -> usize {
-    0
+    find_missing_seat(INPUT)
 }
 
 #[cfg(test)]
@@ -52,9 +63,21 @@ mod test {
         assert_eq!(826, highest_seat_id(INPUT))
     }
 
-    // #[test]
-    // fn p2_example() {}
+    #[test]
+    fn p2_simple() {
+        let values = r#"FBFBBFFLLL
+FBFBBFFLLR
+FBFBBFFLRL
+FBFBBFFRLL
+FBFBBFFRLR
+FBFBBFFRRR
+"#;
 
-    // #[test]
-    // fn p2_correct_answer() {}
+        assert_eq!(355, find_missing_seat(values));
+    }
+
+    #[test]
+    fn p2_correct_answer() {
+        assert_eq!(678, find_missing_seat(INPUT));
+    }
 }
