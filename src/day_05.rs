@@ -1,22 +1,15 @@
 static INPUT: &'static str = include_str!("assets/day_05_input.txt");
 
 fn get_seat_id(boarding_pass: &str) -> usize {
-    let mut row: usize = 0;
-    let mut col: usize = 0;
-    for c in boarding_pass[..7].chars() {
-        if c == 'B' {
-            row += 1;
+    let mut id: usize = 0;
+    for c in boarding_pass.chars() {
+        if c == 'B' || c == 'R' {
+            id += 1;
         }
-        row <<= 1;
+        id <<= 1;
     }
-    for c in boarding_pass[7..].chars() {
-        if c == 'R' {
-            col += 1;
-        }
-        col <<= 1;
-    }
-    // We don't actually want the last shift, so it's easy enough to just unshift here
-    (row >> 1) * 8 + (col >> 1)
+    // We didn't actually want the last shift, it's easy enough to just unshift here
+    id >> 1
 }
 
 fn highest_seat_id(input: &str) -> usize {
