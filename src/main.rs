@@ -7,6 +7,7 @@ mod day_01;
 mod day_02;
 mod day_03;
 mod day_04;
+mod day_05;
 
 fn main() {
     let args: Vec<String> = args().collect();
@@ -17,6 +18,7 @@ fn main() {
         2 => format!("P1:\n{}\n\nP2:\n{}", day_02::p1(), day_02::p2()),
         3 => format!("P1:\n{}\n\nP2:\n{}", day_03::p1(), day_03::p2()),
         4 => format!("P1:\n{}\n\nP2:\n{}", day_04::p1(), day_04::p2()),
+        5 => format!("P1:\n{}\n\nP2:\n{}", day_05::p1(), day_05::p2()),
         _ => "".to_string(),
     };
 
