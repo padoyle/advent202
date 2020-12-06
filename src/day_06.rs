@@ -2,20 +2,13 @@ use std::collections::{HashMap, HashSet};
 
 static INPUT: &'static str = include_str!("assets/day_06_input.txt");
 
-fn get_totals(input: &str) -> Vec<usize> {
-    let mut group_counts: Vec<usize> = Vec::new();
-    let mut letters_seen: HashSet<char> = HashSet::new();
-    for line in input.lines() {
-        if line == "" {
-            group_counts.push(letters_seen.len());
-            letters_seen.clear();
-        }
-        letters_seen.extend(line.chars());
-    }
-    // make sure to process the last group
-    group_counts.push(letters_seen.len());
+fn get_group_total(input: &str) -> usize {
+    let letters_seen: HashSet<char> = input.chars().filter(char::is_ascii_lowercase).collect();
+    letters_seen.len()
+}
 
-    group_counts
+fn get_totals(input: &str) -> Vec<usize> {
+    input.split("\n\n").map(get_group_total).collect()
 }
 
 pub fn p1() -> usize {
@@ -27,7 +20,7 @@ fn get_unanimous_group_total(input: &str) -> usize {
     let mut letters: HashMap<char, usize> = HashMap::new();
     input
         .chars()
-        .filter(|c| c.is_ascii_lowercase())
+        .filter(char::is_ascii_lowercase)
         .for_each(|letter| {
             letters.insert(letter, letters.get(&letter).unwrap_or(&0) + 1);
         });
