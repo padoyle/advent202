@@ -10,7 +10,7 @@ mod day_04;
 mod day_05;
 mod day_06;
 mod day_07;
-// mod day_08;
+mod day_08;
 // mod day_09;
 // mod day_10;
 // mod day_11;
@@ -41,7 +41,7 @@ fn main() {
         5 => format!("P1:\n{}\n\nP2:\n{}", day_05::p1(), day_05::p2()),
         6 => format!("P1:\n{}\n\nP2:\n{}", day_06::p1(), day_06::p2()),
         7 => format!("P1:\n{}\n\nP2:\n{}", day_07::p1(), day_07::p2()),
-        // 8 => format!("P1:\n{}\n\nP2:\n{}", day_08::p1(), day_08::p2()),
+        8 => format!("P1:\n{}\n\nP2:\n{}", day_08::p1(), day_08::p2()),
         // 9 => format!("P1:\n{}\n\nP2:\n{}", day_09::p1(), day_09::p2()),
         // 10 => format!("P1:\n{}\n\nP2:\n{}", day_10::p1(), day_10::p2()),
         // 11 => format!("P1:\n{}\n\nP2:\n{}", day_11::p1(), day_11::p2()),
