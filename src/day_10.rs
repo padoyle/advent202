@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 static INPUT: &'static str = include_str!("assets/day_10_input.txt");
 
 fn order_adpaters(adapters: &mut Vec<i32>) {
@@ -28,39 +26,31 @@ fn find_joltage_differences(mut adapters: Vec<i32>) -> usize {
     diff1 * diff3
 }
 
-fn resolve_sequence_from(
-    adapters: &Vec<i32>,
-    start_index: usize,
-    cache: &mut HashMap<usize, usize>,
-) -> usize {
+fn resolve_sequence(adapters: &Vec<i32>, start_index: usize, cache: &mut Vec<u64>) -> u64 {
     // base case, we've found a complete sequence
     if start_index == adapters.len() - 1 {
         return 1;
     }
     let mut possible_sequences = 0;
-    let current = adapters[start_index];
     let last_index = std::cmp::min(start_index + 3, adapters.len() - 1);
     for i in (start_index + 1)..=last_index {
-        if adapters[i] - current > 3 {
+        if adapters[i] - adapters[start_index] > 3 {
             break;
         }
-        if let Some(precalculated) = cache.get(&i) {
-            possible_sequences += precalculated;
-        } else {
-            let new_sequences = resolve_sequence_from(adapters, i, cache);
-            cache.insert(i, new_sequences);
-            possible_sequences += new_sequences;
+        if cache[i] == 0 {
+            cache[i] = resolve_sequence(adapters, i, cache);
         }
+        possible_sequences += cache[i];
     }
 
     possible_sequences
 }
 
-fn find_all_sequences(adapters: Vec<i32>) -> usize {
+fn find_all_sequences(adapters: Vec<i32>) -> u64 {
     let mut adapters = adapters;
     order_adpaters(&mut adapters);
-    let mut cache = HashMap::new();
-    resolve_sequence_from(&adapters, 0, &mut cache)
+    let mut cache: Vec<u64> = vec![0; adapters.len()];
+    resolve_sequence(&adapters, 0, &mut cache)
 }
 
 fn parse_input(input: &str) -> Vec<i32> {
@@ -71,7 +61,7 @@ pub fn p1() -> usize {
     find_joltage_differences(parse_input(INPUT))
 }
 
-pub fn p2() -> usize {
+pub fn p2() -> u64 {
     find_all_sequences(parse_input(INPUT))
 }
 
