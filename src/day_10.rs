@@ -33,24 +33,24 @@ fn resolve_sequence_from(
     start_index: usize,
     cache: &mut HashMap<usize, usize>,
 ) -> usize {
-    let mut remaining = std::cmp::min(adapters.len() - 1 - start_index, 3);
-    if remaining == 0 {
+    // base case, we've found a complete sequence
+    if start_index == adapters.len() - 1 {
         return 1;
     }
     let mut possible_sequences = 0;
     let current = adapters[start_index];
-    while remaining > 0 {
-        let target = start_index + remaining;
-        if adapters[target] - current <= 3 {
-            if let Some(precalculated) = cache.get(&target) {
-                possible_sequences += precalculated;
-            } else {
-                let new_sequences = resolve_sequence_from(adapters, target, cache);
-                cache.insert(target, new_sequences);
-                possible_sequences += new_sequences;
-            }
+    let last_index = std::cmp::min(start_index + 3, adapters.len() - 1);
+    for i in (start_index + 1)..=last_index {
+        if adapters[i] - current > 3 {
+            break;
         }
-        remaining -= 1;
+        if let Some(precalculated) = cache.get(&i) {
+            possible_sequences += precalculated;
+        } else {
+            let new_sequences = resolve_sequence_from(adapters, i, cache);
+            cache.insert(i, new_sequences);
+            possible_sequences += new_sequences;
+        }
     }
 
     possible_sequences
@@ -148,7 +148,10 @@ mod test {
         assert_eq!(19208, find_all_sequences(ex2));
     }
 
-    // #[test]
-    // fn p2_correct_answer() {
-    // }
+    #[test]
+    fn p2_correct_answer() {
+        let adapters = parse_input(INPUT);
+
+        assert_eq!(3454189699072, find_all_sequences(adapters));
+    }
 }
