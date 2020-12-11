@@ -1,5 +1,7 @@
 #[macro_use]
 extern crate maplit;
+#[macro_use]
+extern crate lazy_static;
 
 use std::env::args;
 
@@ -13,7 +15,7 @@ mod day_07;
 mod day_08;
 mod day_09;
 mod day_10;
-// mod day_11;
+mod day_11;
 // mod day_12;
 // mod day_13;
 // mod day_14;
@@ -44,7 +46,7 @@ fn main() {
         8 => format!("P1:\n{}\n\nP2:\n{}", day_08::p1(), day_08::p2()),
         9 => format!("P1:\n{}\n\nP2:\n{}", day_09::p1(), day_09::p2()),
         10 => format!("P1:\n{}\n\nP2:\n{}", day_10::p1(), day_10::p2()),
-        // 11 => format!("P1:\n{}\n\nP2:\n{}", day_11::p1(), day_11::p2()),
+        11 => format!("P1:\n{}\n\nP2:\n{}", day_11::p1(), day_11::p2()),
         // 12 => format!("P1:\n{}\n\nP2:\n{}", day_12::p1(), day_12::p2()),
         // 13 => format!("P1:\n{}\n\nP2:\n{}", day_13::p1(), day_13::p2()),
         // 14 => format!("P1:\n{}\n\nP2:\n{}", day_14::p1(), day_14::p2()),
