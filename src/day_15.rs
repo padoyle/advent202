@@ -23,6 +23,7 @@ fn find_nth_number(starting_numbers: &Vec<usize>, target: usize) -> usize {
             number = (index - 1) - last_occurence;
         }
         occurences.insert(prev_number, index - 1);
+        // println!("sequence[{}] = {}", index, number);
         index += 1;
     }
 
@@ -34,7 +35,7 @@ pub fn p1() -> usize {
 }
 
 pub fn p2() -> usize {
-    0
+    find_nth_number(&INPUT, 30000000)
 }
 
 #[cfg(test)]
@@ -57,11 +58,22 @@ mod test {
         assert_eq!(614, find_nth_number(&INPUT, 2020));
     }
 
-    // #[test]
-    // fn p2_example() {
-    // }
+    // These tests take a while! Re-enable if the solution is improved.
 
-    // #[test]
-    // fn p2_correct_answer() {
-    // }
+    #[test]
+    #[ignore]
+    fn p2_example() {
+        assert_eq!(2578, find_nth_number(&vec![1, 3, 2], 30000000));
+        assert_eq!(3544142, find_nth_number(&vec![2, 1, 3], 30000000));
+        assert_eq!(261214, find_nth_number(&vec![1, 2, 3], 30000000));
+        assert_eq!(6895259, find_nth_number(&vec![2, 3, 1], 30000000));
+        assert_eq!(18, find_nth_number(&vec![3, 2, 1], 30000000));
+        assert_eq!(362, find_nth_number(&vec![3, 1, 2], 30000000));
+    }
+
+    #[test]
+    #[ignore]
+    fn p2_correct_answer() {
+        assert_eq!(1065, find_nth_number(&INPUT, 30000000));
+    }
 }
