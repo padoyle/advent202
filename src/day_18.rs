@@ -96,7 +96,6 @@ impl Expr {
         (Expr::SubExpr(Box::new(result)), i)
     }
 }
-// 2309
 
 fn resolve(expr: Expr) -> i64 {
     if let Expr::SubExpr(values) = expr {
@@ -185,6 +184,8 @@ mod test {
         );
     }
 
-    // #[test]
-    // fn p2_correct_answer() {}
+    #[test]
+    fn p2_correct_answer() {
+        assert_eq!(85660197232452, evaluate_all_p2(INPUT));
+    }
 }
