@@ -69,6 +69,99 @@ impl RuleSet {
     }
 }
 
+// #[derive(Debug)]
+// enum Resolution {
+//     Rule(usize),
+//     Opts(Vec<String>),
+// }
+
+// #[derive(Debug)]
+// enum RuleResolver {
+//     Sequence(Vec<Resolution>),
+//     SeqChoice(Vec<Resolution>, Vec<Resolution>),
+// }
+
+fn build_options(
+    resolved: &HashMap<usize, Vec<String>>,
+    sequence: &Vec<usize>,
+) -> Option<Vec<String>> {
+    let mut results = Vec::new();
+    for id in sequence {
+        match resolved.get(id) {
+            None => return None,
+            Some(values) => {
+                results = results
+                    .iter()
+                    .map(|existing| {
+                        values
+                            .iter()
+                            .map(move |value| format!("{}{}", existing, value))
+                    })
+                    .flatten()
+                    .collect()
+            }
+        }
+    }
+    if results.len() == 0 {
+        return None;
+    }
+
+    Some(results)
+}
+
+impl RuleSet {
+    fn resolve_all_without_loops(&self) -> HashMap<usize, Vec<String>> {
+        // Filter out rules with loops
+        let mut rules_remaining: HashMap<&usize, &Rule> = self
+            .rules
+            .iter()
+            .filter(|(id, rule)| match rule {
+                Rule::Sequence(values) => !values.contains(id),
+                Rule::SeqChoice(left, right) => !(left.contains(id) || right.contains(id)),
+                _ => true,
+            })
+            .collect();
+
+        let mut resolved: HashMap<usize, Vec<String>> = HashMap::new();
+        let mut limit = 0;
+        while rules_remaining.len() > 0 && limit < 10 {
+            for (&id, &rule) in rules_remaining.iter() {
+                match rule {
+                    Rule::Literal(value) => {
+                        resolved.insert(*id, vec![value.to_string()]);
+                    }
+                    Rule::Sequence(values) => {
+                        if let Some(resolution) = build_options(&resolved, values) {
+                            resolved.insert(*id, resolution);
+                        }
+                    }
+                    Rule::SeqChoice(left, right) => {
+                        match (
+                            build_options(&resolved, left),
+                            build_options(&resolved, right),
+                        ) {
+                            (Some(left_res), Some(right_res)) => {
+                                let mut all_results = left_res;
+                                all_results.extend(right_res.into_iter());
+                                resolved.insert(*id, all_results);
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+            }
+            for id in resolved.keys() {
+                rules_remaining.remove(id);
+            }
+
+            println!("{:?}", resolved);
+            limit += 1;
+        }
+
+        resolved
+    }
+}
+
 fn get_sequence(seq_str: &str) -> Vec<usize> {
     seq_str
         .trim()
@@ -118,15 +211,18 @@ pub fn count_valid_messages(input: &str) -> usize {
         println!("{}: {:?}", k, v);
     }
     println!("\n");
-    messages
-        .lines()
-        .filter(|message| {
-            println!("Message: {}", message);
-            let check = rule_set.is_message_valid(message);
-            println!("{}: {}", message, check);
-            check
-        })
-        .count()
+
+    println!("{:?}", rule_set.resolve_all_without_loops());
+    0
+    // messages
+    //     .lines()
+    //     .filter(|message| {
+    //         println!("Message: {}", message);
+    //         let check = rule_set.is_message_valid(message);
+    //         println!("{}: {}", message, check);
+    //         check
+    //     })
+    //     .count()
 }
 
 pub fn p1() -> usize {
