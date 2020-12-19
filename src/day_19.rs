@@ -1,6 +1,7 @@
 use std::collections::{BTreeMap, HashMap};
 
 static INPUT: &str = include_str!("assets/day_19_input.txt");
+static INPUT2: &str = include_str!("assets/day_19_input2.txt");
 
 #[derive(Debug)]
 enum Rule {
@@ -17,24 +18,16 @@ struct RuleSet {
 impl RuleSet {
     fn is_message_valid(&self, message: &str) -> bool {
         let (check, last_index) = self.check_message(message.as_bytes(), 0, 0);
-        // println!("message: {}", message);
-        // if check && last_index == message.len() {
-        //     println!("\tMatch!")
-        // } else if check && last_index != message.len() {
-        //     println!("\tIncomplete match!");
-        // } else {
-        //     println!("No match!")
-        // }
+        println!("{}; {} / {}", check, last_index, message.len());
         check && last_index == message.len()
     }
 
     fn check_message(&self, message: &[u8], index: usize, rule_id: usize) -> (bool, usize) {
-        // if index == message.len() {
-        //     return (true, message.len());
-        // }
+        if index >= message.len() {
+            return (false, index);
+        }
 
         let rule = self.rules.get(&rule_id).unwrap();
-        // println!("[{}]: {:?}", index, rule);
         match rule {
             Rule::Literal(value) => ((message[index] as char) == *value, index + 1),
             Rule::Sequence(seq_rules) => {
@@ -51,10 +44,10 @@ impl RuleSet {
                     }
                     next_msg_index = next_index;
                 }
-                println!(
-                    "[{}] Sequence {:?} at {}: true\n\tjump to {}",
-                    rule_id, seq_rules, index, next_msg_index
-                );
+                // println!(
+                //     "[{}] Sequence {:?} at {}: true\n\tjump to {}",
+                //     rule_id, seq_rules, index, next_msg_index
+                // );
                 (true, next_msg_index)
             }
             Rule::SeqChoice(rules_left, rules_right) => {
@@ -63,17 +56,17 @@ impl RuleSet {
                 for sub_index in 0..rules_left.len() {
                     let (next_match, next_index) =
                         self.check_message(message, next_msg_index, rules_left[sub_index]);
-                    matches &= next_match;
+                    matches = next_match;
                     if !matches {
                         break;
                     }
                     next_msg_index = next_index;
                 }
                 if matches {
-                    println!(
-                        "[{}] Left sequence {:?} at {}: true\n\tjump to {}",
-                        rule_id, rules_left, index, next_msg_index
-                    );
+                    // println!(
+                    //     "[{}] Left sequence {:?} at {}: true\n\tjump to {}",
+                    //     rule_id, rules_left, index, next_msg_index
+                    // );
                     return (true, next_msg_index);
                 }
 
@@ -82,17 +75,17 @@ impl RuleSet {
                 for sub_index in 0..rules_right.len() {
                     let (next_match, next_index) =
                         self.check_message(message, next_msg_index, rules_right[sub_index]);
-                    matches &= next_match;
+                    matches = next_match;
                     if !matches {
                         break;
                     }
                     next_msg_index = next_index;
                 }
                 if matches {
-                    println!(
-                        "[{}] Right sequence {:?} at {}: true\n\tjump to {}",
-                        rule_id, rules_right, index, next_msg_index
-                    );
+                    // println!(
+                    //     "[{}] Right sequence {:?} at {}: true\n\tjump to {}",
+                    //     rule_id, rules_right, index, next_msg_index
+                    // );
                     return (true, next_msg_index);
                 }
 
@@ -154,11 +147,14 @@ pub fn count_valid_messages(input: &str) -> usize {
     for (k, v) in rule_set.rules.iter() {
         println!("{}: {:?}", k, v);
     }
+    println!("\n");
     messages
         .lines()
         .filter(|message| {
-            println!("Check '{}'", message);
-            rule_set.is_message_valid(message)
+            println!("Message: {}", message);
+            let check = rule_set.is_message_valid(message);
+            println!("{}: {}", message, check);
+            check
         })
         .count()
 }
@@ -168,7 +164,7 @@ pub fn p1() -> usize {
 }
 
 pub fn p2() -> usize {
-    0
+    count_valid_messages(INPUT2)
 }
 
 #[cfg(test)]
@@ -188,18 +184,68 @@ abbbab
 aaabbb
 aaaabbb"#;
 
+    static EXAMPLE2: &str = r#"42: 9 14 | 10 1
+9: 14 27 | 1 26
+10: 23 14 | 28 1
+1: "a"
+11: 42 31 | 42 11 31
+5: 1 14 | 15 1
+19: 14 1 | 14 14
+12: 24 14 | 19 1
+16: 15 1 | 14 14
+31: 14 17 | 1 13
+6: 14 14 | 1 14
+2: 1 24 | 14 4
+0: 8 11
+13: 14 3 | 1 12
+15: 1 | 14
+17: 14 2 | 1 7
+23: 25 1 | 22 14
+28: 16 1
+4: 1 1
+20: 14 14 | 1 15
+3: 5 14 | 16 1
+27: 1 6 | 14 18
+14: "b"
+21: 14 1 | 1 14
+25: 1 1 | 1 14
+22: 14 14
+8: 42 | 42 8
+26: 14 22 | 1 20
+18: 15 15
+7: 14 5 | 1 21
+24: 14 1
+
+abbbbbabbbaaaababbaabbbbabababbbabbbbbbabaaaa
+bbabbbbaabaabba
+babbbbaabbbbbabbbbbbaabaaabaaa
+aaabbbbbbaaaabaababaabababbabaaabbababababaaa
+bbbbbbbaaaabbbbaaabbabaaa
+bbbababbbbaaaaaaaabbababaaababaabab
+ababaaaaaabaaab
+ababaaaaabbbaba
+baabbaaaabbaaaababbaababb
+abbbbabbbbaaaababbbbbbaaaababb
+aaaaabbaabaaaaababaa
+aaaabbaaaabbaaa
+aaaabbaabbaaaaaaabbbabbbaaabbaabaaa
+babaaabbbaaabaababbaabababaaab
+aabbbbbaabbbaaaaaabbbbbababaaaaabbaaabba"#;
+
     #[test]
     fn p1_example() {
         assert_eq!(2, count_valid_messages(EXAMPLE));
     }
 
-    // #[test]
-    // fn p1_correct_answer() {
-    // }
+    #[test]
+    fn p1_correct_answer() {
+        assert_eq!(111, count_valid_messages(INPUT));
+    }
 
-    // #[test]
-    // fn p2_example() {
-    // }
+    #[test]
+    fn p2_example() {
+        assert_eq!(12, count_valid_messages(EXAMPLE2));
+    }
 
     // #[test]
     // fn p2_correct_answer() {
