@@ -16,84 +16,54 @@ struct RuleSet {
 }
 
 impl RuleSet {
-    fn is_message_valid(&self, message: &str) -> bool {
-        let (check, last_index) = self.check_message(message.as_bytes(), 0, 0);
-        println!("{}; {} / {}", check, last_index, message.len());
-        check && last_index == message.len()
+    fn match_sequence(&self, sequence: &Vec<usize>, message: &[u8], index: usize) -> Option<usize> {
+        let mut next_msg_index = index;
+        for seq_index in 0..sequence.len() {
+            let next_index = self.check_message(message, next_msg_index, sequence[seq_index]);
+            if next_index.is_none() {
+                println!(
+                    "\tSequence {:?} at {} failed to match past {}",
+                    sequence, index, next_msg_index
+                );
+                return next_index;
+            }
+            next_msg_index = next_index.unwrap();
+        }
+        println!("\tSequence {:?} at {}: {}", sequence, index, next_msg_index);
+        Some(next_msg_index)
     }
 
-    fn check_message(&self, message: &[u8], index: usize, rule_id: usize) -> (bool, usize) {
+    fn is_message_valid(&self, message: &str) -> bool {
+        let last_index = self.check_message(message.as_bytes(), 0, 0);
+        println!("{:?} / {}", last_index, message.len());
+        last_index == Some(message.len())
+    }
+
+    fn check_message(&self, message: &[u8], index: usize, rule_id: usize) -> Option<usize> {
         if index >= message.len() {
-            return (false, index);
+            return None;
         }
 
         let rule = self.rules.get(&rule_id).unwrap();
         match rule {
-            Rule::Literal(value) => ((message[index] as char) == *value, index + 1),
-            Rule::Sequence(seq_rules) => {
-                let mut next_msg_index = index;
-                for sub_index in 0..seq_rules.len() {
-                    let (next_match, next_index) =
-                        self.check_message(message, next_msg_index, seq_rules[sub_index]);
-                    if !next_match {
-                        println!(
-                            "[{}] Sequence {:?} failed match at {}",
-                            rule_id, seq_rules, sub_index
-                        );
-                        return (false, index);
-                    }
-                    next_msg_index = next_index;
+            Rule::Literal(value) => {
+                if (message[index] as char) == *value {
+                    Some(index + 1)
+                } else {
+                    None
                 }
-                // println!(
-                //     "[{}] Sequence {:?} at {}: true\n\tjump to {}",
-                //     rule_id, seq_rules, index, next_msg_index
-                // );
-                (true, next_msg_index)
             }
+            Rule::Sequence(seq_rules) => self.match_sequence(seq_rules, message, index),
             Rule::SeqChoice(rules_left, rules_right) => {
-                let mut matches = true;
-                let mut next_msg_index = index;
-                for sub_index in 0..rules_left.len() {
-                    let (next_match, next_index) =
-                        self.check_message(message, next_msg_index, rules_left[sub_index]);
-                    matches = next_match;
-                    if !matches {
-                        break;
-                    }
-                    next_msg_index = next_index;
+                let right_matches = self.match_sequence(rules_right, message, index);
+                if right_matches.is_some() {
+                    return right_matches;
                 }
-                if matches {
-                    // println!(
-                    //     "[{}] Left sequence {:?} at {}: true\n\tjump to {}",
-                    //     rule_id, rules_left, index, next_msg_index
-                    // );
-                    return (true, next_msg_index);
+                let left_matches = self.match_sequence(rules_left, message, index);
+                if left_matches.is_some() {
+                    return left_matches;
                 }
-
-                matches = true;
-                next_msg_index = index;
-                for sub_index in 0..rules_right.len() {
-                    let (next_match, next_index) =
-                        self.check_message(message, next_msg_index, rules_right[sub_index]);
-                    matches = next_match;
-                    if !matches {
-                        break;
-                    }
-                    next_msg_index = next_index;
-                }
-                if matches {
-                    // println!(
-                    //     "[{}] Right sequence {:?} at {}: true\n\tjump to {}",
-                    //     rule_id, rules_right, index, next_msg_index
-                    // );
-                    return (true, next_msg_index);
-                }
-
-                println!(
-                    "[{}] Both {:?} and {:?} at {}: false",
-                    rule_id, rules_left, rules_right, index
-                );
-                (false, index)
+                None
             }
         }
     }
@@ -216,21 +186,23 @@ aaaabbb"#;
 7: 14 5 | 1 21
 24: 14 1
 
-abbbbbabbbaaaababbaabbbbabababbbabbbbbbabaaaa
-bbabbbbaabaabba
-babbbbaabbbbbabbbbbbaabaaabaaa
-aaabbbbbbaaaabaababaabababbabaaabbababababaaa
-bbbbbbbaaaabbbbaaabbabaaa
-bbbababbbbaaaaaaaabbababaaababaabab
-ababaaaaaabaaab
-ababaaaaabbbaba
-baabbaaaabbaaaababbaababb
-abbbbabbbbaaaababbbbbbaaaababb
-aaaaabbaabaaaaababaa
-aaaabbaaaabbaaa
-aaaabbaabbaaaaaaabbbabbbaaabbaabaaa
-babaaabbbaaabaababbaabababaaab
-aabbbbbaabbbaaaaaabbbbbababaaaaabbaaabba"#;
+bbbbbbbbbbbbbbbbbbaa"#;
+
+    // abbbbbabbbaaaababbaabbbbabababbbabbbbbbabaaaa
+    // bbabbbbaabaabba
+    // babbbbaabbbbbabbbbbbaabaaabaaa
+    // aaabbbbbbaaaabaababaabababbabaaabbababababaaa
+    // bbbbbbbaaaabbbbaaabbabaaa
+    // bbbababbbbaaaaaaaabbababaaababaabab
+    // ababaaaaaabaaab
+    // ababaaaaabbbaba
+    // baabbaaaabbaaaababbaababb
+    // abbbbabbbbaaaababbbbbbaaaababb
+    // aaaaabbaabaaaaababaa
+    // aaaabbaaaabbaaa
+    // aaaabbaabbaaaaaaabbbabbbaaabbaabaaa
+    // babaaabbbaaabaababbaabababaaab
+    // aabbbbbaabbbaaaaaabbbbbababaaaaabbaaabba"#;
 
     #[test]
     fn p1_example() {
