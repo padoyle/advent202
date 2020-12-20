@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 
 static INPUT: &str = include_str!("assets/day_19_input.txt");
 static INPUT2: &str = include_str!("assets/day_19_input2.txt");
@@ -12,157 +12,46 @@ enum Rule {
 
 #[derive(Debug)]
 struct RuleSet {
-    rules: BTreeMap<usize, Rule>,
+    rules: HashMap<usize, Rule>,
 }
 
+// This solution was more or less borrowed wholesale from
+// https://github.com/gokberkkocak/adventofcode/blob/master/src/aoc2020/day19.rs,
+// after I struggled for quite a while to get a similar idea working!
 impl RuleSet {
-    fn match_sequence(&self, sequence: &Vec<usize>, message: &[u8], index: usize) -> Option<usize> {
-        let mut next_msg_index = index;
-        for seq_index in 0..sequence.len() {
-            let next_index = self.check_message(message, next_msg_index, sequence[seq_index]);
-            if next_index.is_none() {
-                println!(
-                    "\tSequence {:?} at {} failed to match past {}",
-                    sequence, index, next_msg_index
-                );
-                return next_index;
+    fn resolve_sequence<'a>(&self, message: &'a str, sequence: &Vec<usize>) -> Vec<&'a str> {
+        let mut candidates = vec![message];
+        for rule in sequence {
+            let mut new_candidates = Vec::new();
+            for candidate in candidates {
+                new_candidates.append(&mut self.resolve_message(candidate, *rule))
             }
-            next_msg_index = next_index.unwrap();
+            candidates = new_candidates;
         }
-        println!("\tSequence {:?} at {}: {}", sequence, index, next_msg_index);
-        Some(next_msg_index)
+        candidates
     }
 
-    fn is_message_valid(&self, message: &str) -> bool {
-        let last_index = self.check_message(message.as_bytes(), 0, 0);
-        println!("{:?} / {}", last_index, message.len());
-        last_index == Some(message.len())
-    }
-
-    fn check_message(&self, message: &[u8], index: usize, rule_id: usize) -> Option<usize> {
-        if index >= message.len() {
-            return None;
+    fn resolve_message<'a>(&self, message: &'a str, rule: usize) -> Vec<&'a str> {
+        if message.is_empty() {
+            return vec![];
         }
-
-        let rule = self.rules.get(&rule_id).unwrap();
-        match rule {
-            Rule::Literal(value) => {
-                if (message[index] as char) == *value {
-                    Some(index + 1)
-                } else {
-                    None
-                }
-            }
-            Rule::Sequence(seq_rules) => self.match_sequence(seq_rules, message, index),
-            Rule::SeqChoice(rules_left, rules_right) => {
-                let right_matches = self.match_sequence(rules_right, message, index);
-                if right_matches.is_some() {
-                    return right_matches;
-                }
-                let left_matches = self.match_sequence(rules_left, message, index);
-                if left_matches.is_some() {
-                    return left_matches;
-                }
-                None
+        match self.rules.get(&rule).unwrap() {
+            Rule::Literal(value) => message
+                .strip_prefix(*value)
+                .and_then(|sub| Some(vec![sub]))
+                .unwrap_or_else(|| Vec::new()),
+            Rule::Sequence(rules) => self.resolve_sequence(message, rules),
+            Rule::SeqChoice(rules_l, rules_r) => {
+                let mut candidates = Vec::new();
+                candidates.append(&mut self.resolve_sequence(message, rules_l));
+                candidates.append(&mut self.resolve_sequence(message, rules_r));
+                candidates
             }
         }
     }
 }
 
-// #[derive(Debug)]
-// enum Resolution {
-//     Rule(usize),
-//     Opts(Vec<String>),
-// }
-
-// #[derive(Debug)]
-// enum RuleResolver {
-//     Sequence(Vec<Resolution>),
-//     SeqChoice(Vec<Resolution>, Vec<Resolution>),
-// }
-
-fn build_options(
-    resolved: &HashMap<usize, Vec<String>>,
-    sequence: &Vec<usize>,
-) -> Option<Vec<String>> {
-    let mut results = Vec::new();
-    for id in sequence {
-        match resolved.get(id) {
-            None => return None,
-            Some(values) => {
-                results = results
-                    .iter()
-                    .map(|existing| {
-                        values
-                            .iter()
-                            .map(move |value| format!("{}{}", existing, value))
-                    })
-                    .flatten()
-                    .collect()
-            }
-        }
-    }
-    if results.len() == 0 {
-        return None;
-    }
-
-    Some(results)
-}
-
-impl RuleSet {
-    fn resolve_all_without_loops(&self) -> HashMap<usize, Vec<String>> {
-        // Filter out rules with loops
-        let mut rules_remaining: HashMap<&usize, &Rule> = self
-            .rules
-            .iter()
-            .filter(|(id, rule)| match rule {
-                Rule::Sequence(values) => !values.contains(id),
-                Rule::SeqChoice(left, right) => !(left.contains(id) || right.contains(id)),
-                _ => true,
-            })
-            .collect();
-
-        let mut resolved: HashMap<usize, Vec<String>> = HashMap::new();
-        let mut limit = 0;
-        while rules_remaining.len() > 0 && limit < 10 {
-            for (&id, &rule) in rules_remaining.iter() {
-                match rule {
-                    Rule::Literal(value) => {
-                        resolved.insert(*id, vec![value.to_string()]);
-                    }
-                    Rule::Sequence(values) => {
-                        if let Some(resolution) = build_options(&resolved, values) {
-                            resolved.insert(*id, resolution);
-                        }
-                    }
-                    Rule::SeqChoice(left, right) => {
-                        match (
-                            build_options(&resolved, left),
-                            build_options(&resolved, right),
-                        ) {
-                            (Some(left_res), Some(right_res)) => {
-                                let mut all_results = left_res;
-                                all_results.extend(right_res.into_iter());
-                                resolved.insert(*id, all_results);
-                            }
-                            _ => {}
-                        }
-                    }
-                }
-            }
-            for id in resolved.keys() {
-                rules_remaining.remove(id);
-            }
-
-            println!("{:?}", resolved);
-            limit += 1;
-        }
-
-        resolved
-    }
-}
-
-fn get_sequence(seq_str: &str) -> Vec<usize> {
+fn parse_sequence(seq_str: &str) -> Vec<usize> {
     seq_str
         .trim()
         .split_whitespace()
@@ -183,10 +72,10 @@ fn parse_rule_set(input: &str) -> RuleSet {
                     if one_value.starts_with("\"") {
                         Rule::Literal(one_value.chars().nth(1).unwrap())
                     } else {
-                        Rule::Sequence(get_sequence(one_value))
+                        Rule::Sequence(parse_sequence(one_value))
                     }
                 }
-                [opt_a, opt_b] => Rule::SeqChoice(get_sequence(opt_a), get_sequence(opt_b)),
+                [opt_a, opt_b] => Rule::SeqChoice(parse_sequence(opt_a), parse_sequence(opt_b)),
                 _ => panic!("Bad input"),
             };
 
@@ -207,22 +96,11 @@ fn parse_input(input: &str) -> (RuleSet, &str) {
 pub fn count_valid_messages(input: &str) -> usize {
     let (rule_set, messages) = parse_input(input);
 
-    for (k, v) in rule_set.rules.iter() {
-        println!("{}: {:?}", k, v);
-    }
-    println!("\n");
-
-    println!("{:?}", rule_set.resolve_all_without_loops());
-    0
-    // messages
-    //     .lines()
-    //     .filter(|message| {
-    //         println!("Message: {}", message);
-    //         let check = rule_set.is_message_valid(message);
-    //         println!("{}: {}", message, check);
-    //         check
-    //     })
-    //     .count()
+    messages
+        .lines()
+        .flat_map(|message| rule_set.resolve_message(message, 0))
+        .filter(|resolved| resolved.is_empty())
+        .count()
 }
 
 pub fn p1() -> usize {
@@ -282,23 +160,21 @@ aaaabbb"#;
 7: 14 5 | 1 21
 24: 14 1
 
-bbbbbbbbbbbbbbbbbbaa"#;
-
-    // abbbbbabbbaaaababbaabbbbabababbbabbbbbbabaaaa
-    // bbabbbbaabaabba
-    // babbbbaabbbbbabbbbbbaabaaabaaa
-    // aaabbbbbbaaaabaababaabababbabaaabbababababaaa
-    // bbbbbbbaaaabbbbaaabbabaaa
-    // bbbababbbbaaaaaaaabbababaaababaabab
-    // ababaaaaaabaaab
-    // ababaaaaabbbaba
-    // baabbaaaabbaaaababbaababb
-    // abbbbabbbbaaaababbbbbbaaaababb
-    // aaaaabbaabaaaaababaa
-    // aaaabbaaaabbaaa
-    // aaaabbaabbaaaaaaabbbabbbaaabbaabaaa
-    // babaaabbbaaabaababbaabababaaab
-    // aabbbbbaabbbaaaaaabbbbbababaaaaabbaaabba"#;
+abbbbbabbbaaaababbaabbbbabababbbabbbbbbabaaaa
+bbabbbbaabaabba
+babbbbaabbbbbabbbbbbaabaaabaaa
+aaabbbbbbaaaabaababaabababbabaaabbababababaaa
+bbbbbbbaaaabbbbaaabbabaaa
+bbbababbbbaaaaaaaabbababaaababaabab
+ababaaaaaabaaab
+ababaaaaabbbaba
+baabbaaaabbaaaababbaababb
+abbbbabbbbaaaababbbbbbaaaababb
+aaaaabbaabaaaaababaa
+aaaabbaaaabbaaa
+aaaabbaabbaaaaaaabbbabbbaaabbaabaaa
+babaaabbbaaabaababbaabababaaab
+aabbbbbaabbbaaaaaabbbbbababaaaaabbaaabba"#;
 
     #[test]
     fn p1_example() {
@@ -315,7 +191,8 @@ bbbbbbbbbbbbbbbbbbaa"#;
         assert_eq!(12, count_valid_messages(EXAMPLE2));
     }
 
-    // #[test]
-    // fn p2_correct_answer() {
-    // }
+    #[test]
+    fn p2_correct_answer() {
+        assert_eq!(343, count_valid_messages(INPUT2));
+    }
 }
