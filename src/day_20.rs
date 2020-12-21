@@ -45,14 +45,6 @@ fn reverse_10_bits(value: u16) -> u16 {
     new_value
 }
 
-// fn precalculate_reverse_lookup() -> HashMap<u16, u16> {
-//     let mut map = HashMap::new();
-//     for i in 0..0b1111111111 {
-//         map.insert(i, reverse_10_bits(i));
-//     }
-//     map
-// }
-
 impl Tile {
     fn parse(input: &str) -> Self {
         fn fold_bits(mut acc: u16, value: char) -> u16 {
@@ -93,13 +85,12 @@ impl Tile {
         Self { id, sides }
     }
 
-    // rotate by 90 degrees, 'count' times
-    fn rotate(&mut self, count: usize) {
+    fn rotate_90(&mut self) {
         let mut new_sides = [0; 4];
-        new_sides[0] = self.sides[(0 + count) % 4];
-        new_sides[1] = self.sides[(1 + count) % 4];
-        new_sides[2] = self.sides[(2 + count) % 4];
-        new_sides[3] = self.sides[(3 + count) % 4];
+        new_sides[0] = self.sides[1];
+        new_sides[1] = self.sides[2];
+        new_sides[2] = self.sides[3];
+        new_sides[3] = self.sides[0];
 
         self.sides = new_sides;
     }
@@ -107,24 +98,28 @@ impl Tile {
     fn flip(&mut self, vertical: bool, horizontal: bool) {
         let mut new_sides = self.sides.clone();
         if vertical {
-            // swap top & bottom sides
-            new_sides[TOP] = self.sides[BOT];
-            new_sides[BOT] = self.sides[TOP];
+            // swap top & bottom sides (flipping to preserve clockwise read direction)
+            new_sides[TOP] = reverse_10_bits(self.sides[BOT]);
+            new_sides[BOT] = reverse_10_bits(self.sides[TOP]);
             // reverse left & right sides
             new_sides[LEFT] = reverse_10_bits(self.sides[LEFT]);
             new_sides[RIGHT] = reverse_10_bits(self.sides[RIGHT]);
         }
         if horizontal {
-            // swap left & right sides
-            new_sides[LEFT] = self.sides[RIGHT];
-            new_sides[RIGHT] = self.sides[LEFT];
+            // swap left & right sides (flipping to preserve clockwise read direction)
+            new_sides[LEFT] = reverse_10_bits(self.sides[RIGHT]);
+            new_sides[RIGHT] = reverse_10_bits(self.sides[LEFT]);
             // reverse top & bottom sides
             new_sides[TOP] = reverse_10_bits(self.sides[TOP]);
             new_sides[BOT] = reverse_10_bits(self.sides[BOT]);
         }
+        self.sides = new_sides;
     }
 
     fn check_fit(&self, neighbors: &[Option<u16>]) -> bool {
+        if self.id == 3079 {
+            println!("Check {:?}", self.sides);
+        }
         (0..4).all(|i| match neighbors[i] {
             Some(needed) => self.sides[i] == needed,
             None => true,
@@ -136,28 +131,28 @@ impl Tile {
             if self.check_fit(neighbors) {
                 return true;
             }
-            self.rotate(1);
+            self.rotate_90();
         }
         self.flip(true, false);
         for _ in 0..4 {
             if self.check_fit(neighbors) {
                 return true;
             }
-            self.rotate(1);
+            self.rotate_90();
         }
         self.flip(false, true);
         for _ in 0..4 {
             if self.check_fit(neighbors) {
                 return true;
             }
-            self.rotate(1);
+            self.rotate_90();
         }
         self.flip(true, false);
         for _ in 0..4 {
             if self.check_fit(neighbors) {
                 return true;
             }
-            self.rotate(1);
+            self.rotate_90();
         }
 
         false
@@ -171,29 +166,11 @@ fn parse_tiles(input: &str) -> Vec<Tile> {
         .collect()
 }
 
-struct TileNode<'a> {
-    tile: &'a Tile,
-    up: Option<&'a Tile>,
-    down: Option<&'a Tile>,
-    left: Option<&'a Tile>,
-    right: Option<&'a Tile>,
-}
-
-impl<'a> TileNode<'a> {
-    fn new(tile: &'a Tile) -> Self {
-        Self {
-            tile,
-            up: None,
-            down: None,
-            left: None,
-            right: None,
-        }
-    }
-}
-
 type TileMap = HashMap<(i32, i32), Tile>;
 
-fn debug_print_map(map: &TileMap) {
+fn multiply_corners(map: &TileMap) -> u64 {
+    // Find the bounds of our map; since we start with an arbitrary tile
+    // at (0, 0), the bounds aren't obvious
     let mut min_x = 0;
     let mut max_x = 0;
     let mut min_y = 0;
@@ -204,6 +181,8 @@ fn debug_print_map(map: &TileMap) {
         min_y = std::cmp::min(y, min_y);
         max_y = std::cmp::max(y, max_y);
     });
+
+    // Visualize tile map for debugging (also it looks nice)
     for x in min_x..max_x + 1 {
         println!();
         for y in min_y..max_y + 1 {
@@ -214,6 +193,16 @@ fn debug_print_map(map: &TileMap) {
         }
     }
     println!();
+
+    // Multiple the four corners
+    vec![
+        map.get(&(min_x, min_y)).unwrap().id as u64,
+        map.get(&(max_x, min_y)).unwrap().id as u64,
+        map.get(&(min_x, max_y)).unwrap().id as u64,
+        map.get(&(max_x, max_y)).unwrap().id as u64,
+    ]
+    .iter()
+    .product()
 }
 
 fn find_open_positions(image: &TileMap) -> HashSet<(i32, i32)> {
@@ -232,47 +221,43 @@ fn find_open_positions(image: &TileMap) -> HashSet<(i32, i32)> {
             results.insert((*x, y + 1));
         }
     }
-    println!("{} possible positions to check", results.len());
     results
 }
 
 fn solve(tiles: Vec<Tile>) -> TileMap {
+    // build a map of id to tile for remaining tiles (eaiser to deal with as a map)
     let mut remaining: HashMap<u16, Tile> =
         tiles.iter().map(|tile| (tile.id, tile.clone())).collect();
-    // let dim = (tiles.len() as f64).sqrt() as usize;
-    // let mut min_x = 0;
-    // let mut min_y = 0;
-    // let mut max_x = 0;
-    // let mut max_y = 0;
+
+    // Initialize our image and place our first tile at its "center"
     let mut image: TileMap = HashMap::new();
     let first_tile_key = remaining.keys().next().unwrap().clone();
     let first_tile = remaining.remove(&first_tile_key).unwrap();
-    println!("Place {} at (0, 0)", first_tile_key);
     image.insert((0, 0), first_tile);
 
-    let mut loop_count = 0;
     loop {
-        println!("{} remaining", remaining.len());
+        // For every open position next to an existing tile...
         for (next_x, next_y) in find_open_positions(&image) {
-            println!("Attempt to place tile at ({}, {})", next_x, next_y);
+            // Find what values we need the tile to have to match the neighbors
+            // of that particular location
             let neighbors: Vec<Option<u16>> = vec![
                 image.get(&(next_x, next_y - 1)).map(Tile::bot_reversed),
                 image.get(&(next_x + 1, next_y)).map(Tile::left_reversed),
                 image.get(&(next_x, next_y + 1)).map(Tile::top_reversed),
                 image.get(&(next_x - 1, next_y)).map(Tile::right_reversed),
             ];
-            println!("Neighbors to match: {:?}", neighbors);
 
+            // Iterate through our remaining tiles and find the one that fits
             let mut found_id: Option<u16> = None;
             for (id, tile) in remaining.iter_mut() {
-                println!("Check tile {}", tile.id);
                 if tile.find_fit(neighbors.as_slice()) {
-                    println!("\tTile {} fits!", id);
                     found_id = Some(*id);
                     break;
                 }
             }
 
+            // If we found a tile that fits at this position, break so we can
+            // recompute the unoccupied positions
             if let Some(id) = found_id {
                 let tile = remaining.remove(&id);
                 image.insert((next_x, next_y), tile.unwrap());
@@ -280,15 +265,9 @@ fn solve(tiles: Vec<Tile>) -> TileMap {
             }
         }
 
-        loop_count += 1;
-        if loop_count >= 15 {
-            println!();
-            debug_print_map(&image);
-            panic!("NO MORE LOOOPING");
+        if remaining.is_empty() {
+            break;
         }
-        // if remaining.is_empty() {
-        //     break;
-        // }
     }
 
     image
@@ -296,8 +275,8 @@ fn solve(tiles: Vec<Tile>) -> TileMap {
 
 pub fn p1() -> u64 {
     let tiles = parse_tiles(INPUT);
-    let _result = solve(tiles);
-    0
+    let image = solve(tiles);
+    multiply_corners(&image)
 }
 
 pub fn p2() -> u64 {
@@ -323,17 +302,16 @@ mod test {
     #[test]
     fn p1_example() {
         let tiles = parse_tiles(EXAMPLE);
-        for tile in tiles.iter() {
-            println!("{:?}", tile);
-        }
-        // panic!();
-        let _result = solve(tiles);
-        assert_eq!(0, 1);
+        let image = solve(tiles);
+        assert_eq!(20899048083289, multiply_corners(&image));
     }
 
-    // #[test]
-    // fn p1_correct_answer() {
-    // }
+    #[test]
+    fn p1_correct_answer() {
+        let tiles = parse_tiles(INPUT);
+        let image = solve(tiles);
+        assert_eq!(174206308298779, multiply_corners(&image));
+    }
 
     // #[test]
     // fn p2_example() {
