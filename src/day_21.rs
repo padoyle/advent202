@@ -17,7 +17,7 @@ fn parse_input<'a>(input: &'a str) -> FoodList<'a> {
         .collect()
 }
 
-fn find_unsafe_ingredients<'a>(foods: &FoodList<'a>) -> HashSet<&'a str> {
+fn find_allergens<'a>(foods: &FoodList<'a>) -> HashMap<&'a str, &'a str> {
     // Get the set of all allergens that exist across all foods
     let all_allergens: HashSet<&str> = foods
         .iter()
@@ -88,19 +88,19 @@ fn find_unsafe_ingredients<'a>(foods: &FoodList<'a>) -> HashSet<&'a str> {
         "Could not resolve all alergens"
     );
 
-    known_allergens.keys().map(|i| *i).collect()
+    known_allergens
 }
 
 fn find_safe_ingredient_occurrences<'a>(
     foods: &FoodList<'a>,
-    unsafe_ingredients: HashSet<&'a str>,
+    known_allergens: HashMap<&'a str, &'a str>,
 ) -> usize {
     foods
         .iter()
         .map(|(i_set, _)| i_set)
         .flatten()
         .fold(0, |acc, i| {
-            if !unsafe_ingredients.contains(i) {
+            if !known_allergens.contains_key(i) {
                 acc + 1
             } else {
                 acc
@@ -108,14 +108,27 @@ fn find_safe_ingredient_occurrences<'a>(
         })
 }
 
-pub fn p1() -> usize {
-    let food_list = parse_input(INPUT);
-    let unsafe_ingredients = find_unsafe_ingredients(&food_list);
-    find_safe_ingredient_occurrences(&food_list, unsafe_ingredients)
+fn get_ingredient_list(known_allergens: HashMap<&str, &str>) -> String {
+    let mut as_list: Vec<(&str, &str)> = known_allergens.into_iter().collect();
+    as_list.sort_by(|left, right| left.1.cmp(right.1));
+
+    as_list
+        .into_iter()
+        .map(|(i, _a)| i)
+        .collect::<Vec<&str>>()
+        .join(",")
 }
 
-pub fn p2() -> usize {
-    0
+pub fn p1() -> usize {
+    let food_list = parse_input(INPUT);
+    let known_allergens = find_allergens(&food_list);
+    find_safe_ingredient_occurrences(&food_list, known_allergens)
+}
+
+pub fn p2() -> String {
+    let food_list = parse_input(INPUT);
+    let known_allergens = find_allergens(&food_list);
+    get_ingredient_list(known_allergens)
 }
 
 #[cfg(test)]
@@ -130,22 +143,32 @@ sqjhc mxmxvkd sbzzf (contains fish)"#;
     #[test]
     fn p1_example() {
         let food_list = parse_input(EXAMPLE);
-        let unsafe_ingredients = find_unsafe_ingredients(&food_list);
-        let result = find_safe_ingredient_occurrences(&food_list, unsafe_ingredients);
+        let known_allergens = find_allergens(&food_list);
+        let result = find_safe_ingredient_occurrences(&food_list, known_allergens);
         assert_eq!(5, result);
     }
 
     #[test]
     fn p1_correct_answer() {
         let food_list = parse_input(INPUT);
-        let unsafe_ingredients = find_unsafe_ingredients(&food_list);
-        let result = find_safe_ingredient_occurrences(&food_list, unsafe_ingredients);
+        let known_allergens = find_allergens(&food_list);
+        let result = find_safe_ingredient_occurrences(&food_list, known_allergens);
         assert_eq!(2798, result);
     }
 
-    // #[test]
-    // fn p2_simple() {}
+    #[test]
+    fn p2_simple() {
+        let food_list = parse_input(EXAMPLE);
+        let known_allergens = find_allergens(&food_list);
+        let result = get_ingredient_list(known_allergens);
+        assert_eq!("mxmxvkd,sqjhc,fvjkl", result.as_str());
+    }
 
-    // #[test]
-    // fn p2_example() {}
+    #[test]
+    fn p2_example() {
+        let food_list = parse_input(INPUT);
+        let known_allergens = find_allergens(&food_list);
+        let result = get_ingredient_list(known_allergens);
+        assert_eq!("gbt,rpj,vdxb,dtb,bqmhk,vqzbq,zqjm,nhjrzzj", result.as_str());
+    }
 }
