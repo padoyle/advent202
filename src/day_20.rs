@@ -1,3 +1,8 @@
+use std::{
+    collections::{HashMap, HashSet},
+    hash::Hash,
+};
+
 static INPUT: &str = include_str!("assets/day_20_input.txt");
 
 static TOP: usize = 0;
@@ -19,6 +24,14 @@ fn reverse_10_bits(value: u16) -> u16 {
         }
     }
     new_value
+}
+
+fn precalculate_reverse_lookup() -> HashMap<u16, u16> {
+    let mut map = HashMap::new();
+    for i in 0..0b1111111111 {
+        map.insert(i, reverse_10_bits(i));
+    }
+    map
 }
 
 impl Tile {
@@ -83,6 +96,45 @@ impl Tile {
             new_sides[BOT] = reverse_10_bits(self.sides[BOT]);
         }
     }
+
+    fn check_fit(&self, neighbors: &[Option<u16>]) -> bool {
+        (0..3).all(|i| match neighbors[i] {
+            Some(needed) => self.sides[i] == needed,
+            None => true,
+        })
+    }
+
+    fn find_fit(&mut self, neighbors: &[Option<u16>]) -> bool {
+        for _ in 0..3 {
+            if self.check_fit(neighbors) {
+                return true;
+            }
+            self.rotate(1);
+        }
+        self.flip(true, false);
+        for _ in 0..3 {
+            if self.check_fit(neighbors) {
+                return true;
+            }
+            self.rotate(1);
+        }
+        self.flip(false, true);
+        for _ in 0..3 {
+            if self.check_fit(neighbors) {
+                return true;
+            }
+            self.rotate(1);
+        }
+        self.flip(true, false);
+        for _ in 0..3 {
+            if self.check_fit(neighbors) {
+                return true;
+            }
+            self.rotate(1);
+        }
+
+        false
+    }
 }
 
 fn fits_h(left: &Tile, right: &Tile) -> bool {
@@ -99,6 +151,46 @@ fn parse_tiles(input: &str) -> Vec<Tile> {
         .map(|tile_str| Tile::parse(tile_str))
         .collect()
 }
+
+struct TileNode<'a> {
+    tile: &'a Tile,
+    up: Option<&'a Tile>,
+    down: Option<&'a Tile>,
+    left: Option<&'a Tile>,
+    right: Option<&'a Tile>,
+}
+
+impl<'a> TileNode<'a> {
+    fn new(tile: &'a Tile) -> Self {
+        Self {
+            tile,
+            up: None,
+            down: None,
+            left: None,
+            right: None,
+        }
+    }
+}
+
+// fn solve<'a>(tiles: &'a mut Vec<Tile>) -> TileNode<'a> {
+//     let mut remaining: Vec<&mut Tile> = tiles.iter_mut().collect();
+//     let dim = (tiles.len() as f64).sqrt() as usize;
+//     let mut min_x = 0;
+//     let mut min_y = 0;
+//     let mut max_x = 0;
+//     let mut max_y = 0;
+//     let mut root = TileNode::new(remaining.pop().unwrap());
+
+//     let mut node: TileNode = root;
+//     while remaining.len() > 0 {
+//         // try assign left neighbor
+//         for tile in remaining {
+
+//         }
+//     }
+
+//     root
+// }
 
 pub fn p1() -> u64 {
     0
@@ -127,10 +219,14 @@ mod test {
     #[test]
     fn p1_example() {
         let tiles = parse_tiles(EXAMPLE);
-        for tile in tiles {
+        for tile in tiles.iter() {
             println!("{:?}", tile);
         }
-        // assert_eq!(1, 2);
+        let corners = find_unmatchable_corners(&tiles);
+        assert_eq!(
+            20899048083289u64,
+            corners.iter().map(|v| *v as u64).product()
+        );
     }
 
     // #[test]
