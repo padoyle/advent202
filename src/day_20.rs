@@ -82,7 +82,7 @@ impl Tile {
             .map(|line| line.chars().last().unwrap())
             .fold(0, fold_bits)
             >> 1;
-        sides[2] = tile_lines.last().unwrap().chars().fold(0, fold_bits) >> 1;
+        sides[2] = tile_lines.last().unwrap().chars().rev().fold(0, fold_bits) >> 1;
         sides[3] = tile_lines
             .iter()
             .rev()
@@ -281,7 +281,7 @@ fn solve(tiles: Vec<Tile>) -> TileMap {
         }
 
         loop_count += 1;
-        if loop_count >= 10 {
+        if loop_count >= 15 {
             println!();
             debug_print_map(&image);
             panic!("NO MORE LOOOPING");
@@ -295,6 +295,8 @@ fn solve(tiles: Vec<Tile>) -> TileMap {
 }
 
 pub fn p1() -> u64 {
+    let tiles = parse_tiles(INPUT);
+    let _result = solve(tiles);
     0
 }
 
@@ -324,6 +326,7 @@ mod test {
         for tile in tiles.iter() {
             println!("{:?}", tile);
         }
+        // panic!();
         let _result = solve(tiles);
         assert_eq!(0, 1);
     }
