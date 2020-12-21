@@ -1,7 +1,4 @@
-use std::{
-    collections::{HashMap, HashSet},
-    hash::Hash,
-};
+use std::collections::{HashMap, HashSet};
 
 static INPUT: &str = include_str!("assets/day_20_input.txt");
 
@@ -194,7 +191,7 @@ fn multiply_corners(map: &TileMap) -> u64 {
     }
     println!();
 
-    // Multiple the four corners
+    // Multiply the four corners
     vec![
         map.get(&(min_x, min_y)).unwrap().id as u64,
         map.get(&(max_x, min_y)).unwrap().id as u64,
