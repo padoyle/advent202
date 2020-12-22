@@ -115,34 +115,27 @@ fn play_recursive_combat(initial_state: GameState) -> (usize, Vec<u8>) {
     loop {
         // Check for first victory condition: previously seen state
         let hashed_state = hash(&state);
-        println!("{} - {}", hashed_state, state);
         if seen_states.contains(&hashed_state) {
             return (P1_WIN, state.p1);
         }
         seen_states.insert(hashed_state);
 
-        // Draw cards
-        let p1_draw = state.p1.pop();
-        let p2_draw = state.p2.pop();
-
         // Check for win conditions
         if state.p1.is_empty() {
-            // Put p2's drawn card back on the stack before returning
-            state.p2.push(p2_draw.unwrap());
             return (P2_WIN, state.p2);
         } else if state.p2.is_empty() {
-            // Put p1's drawn card back on the stack before returning
-            state.p1.push(p1_draw.unwrap());
             return (P1_WIN, state.p1);
         }
 
-        // Check for a recursive subgame, and start one if needed
+        // Draw cards
         let p1_draw = state.p1.remove(0) as usize;
         let p2_draw = state.p2.remove(0) as usize;
+
+        // Check for a recursive subgame, and start one if needed
         let winner = if p1_draw <= state.p1.len() && p2_draw <= state.p2.len() {
             // Time for a sub-game!
-            let p1_subdeck: Vec<u8> = state.p1.iter().rev().take(p1_draw).cloned().collect();
-            let p2_subdeck: Vec<u8> = state.p2.iter().rev().take(p2_draw).cloned().collect();
+            let p1_subdeck: Vec<u8> = state.p1.iter().take(p1_draw).cloned().collect();
+            let p2_subdeck: Vec<u8> = state.p2.iter().take(p2_draw).cloned().collect();
             let subgame_state = GameState::new(state.game_id + 1, p1_subdeck, p2_subdeck);
 
             let (subwinner, _) = play_recursive_combat(subgame_state);
@@ -158,11 +151,11 @@ fn play_recursive_combat(initial_state: GameState) -> (usize, Vec<u8>) {
 
         // Resolve winner for this round
         if winner == P1_WIN {
-            state.p1.insert(0, p1_draw as u8);
-            state.p1.insert(0, p2_draw as u8);
+            state.p1.push(p1_draw as u8);
+            state.p1.push(p2_draw as u8);
         } else {
-            state.p2.insert(0, p2_draw as u8);
-            state.p2.insert(0, p1_draw as u8);
+            state.p2.push(p2_draw as u8);
+            state.p2.push(p1_draw as u8);
         }
     }
 }
@@ -211,14 +204,16 @@ Player 2:
     }
 
     #[test]
-    #[ignore]
     fn p2_example() {
         let initial_state = GameState::parse(EXAMPLE);
         let (_, winning_deck) = play_recursive_combat(initial_state);
         assert_eq!(291, calculate_score(winning_deck));
     }
 
-    // #[test]
-    // fn p2_correct_answer() {
-    // }
+    #[test]
+    fn p2_correct_answer() {
+        let initial_state = GameState::parse(INPUT);
+        let (_, winning_deck) = play_recursive_combat(initial_state);
+        assert_eq!(36621, calculate_score(winning_deck));
+    }
 }
