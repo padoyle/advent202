@@ -10,18 +10,16 @@ fn parse_input(input: &str) -> (Vec<u8>, Vec<u8>) {
     let player1 = split.next().unwrap();
     let player2 = split.next().unwrap();
 
-    let mut p1_deck: Vec<u8> = player1
+    let p1_deck: Vec<u8> = player1
         .lines()
         .skip(1)
         .map(|v| v.parse().unwrap())
         .collect();
-    p1_deck.reverse();
-    let mut p2_deck: Vec<u8> = player2
+    let p2_deck: Vec<u8> = player2
         .lines()
         .skip(1)
         .map(|v| v.parse().unwrap())
         .collect();
-    p2_deck.reverse();
 
     (p1_deck, p2_deck)
 }
@@ -33,14 +31,14 @@ static P2_WIN: usize = 2;
 fn play_round(p1: &mut Vec<u8>, p2: &mut Vec<u8>) -> usize {
     match (p1.is_empty(), p2.is_empty()) {
         (false, false) => {
-            let p1_draw = p1.pop().unwrap();
-            let p2_draw = p2.pop().unwrap();
+            let p1_draw = p1.remove(0);
+            let p2_draw = p2.remove(0);
             if p1_draw > p2_draw {
-                p1.insert(0, p1_draw);
-                p1.insert(0, p2_draw);
+                p1.push(p1_draw);
+                p1.push(p2_draw);
             } else {
-                p2.insert(0, p2_draw);
-                p2.insert(0, p1_draw);
+                p2.push(p2_draw);
+                p2.push(p1_draw);
             }
             NO_WIN
         }
@@ -67,6 +65,7 @@ fn play_combat(p1: Vec<u8>, p2: Vec<u8>) -> Vec<u8> {
 
 fn calculate_score(deck: Vec<u8>) -> u32 {
     deck.iter()
+        .rev()
         .enumerate()
         .map(|(i, card)| ((i + 1) as u32) * (*card as u32))
         .sum()
@@ -127,19 +126,19 @@ fn play_recursive_combat(initial_state: GameState) -> (usize, Vec<u8>) {
         let p2_draw = state.p2.pop();
 
         // Check for win conditions
-        if p1_draw.is_none() {
+        if state.p1.is_empty() {
             // Put p2's drawn card back on the stack before returning
             state.p2.push(p2_draw.unwrap());
             return (P2_WIN, state.p2);
-        } else if p2_draw.is_none() {
+        } else if state.p2.is_empty() {
             // Put p1's drawn card back on the stack before returning
             state.p1.push(p1_draw.unwrap());
             return (P1_WIN, state.p1);
         }
 
         // Check for a recursive subgame, and start one if needed
-        let p1_draw = p1_draw.unwrap() as usize;
-        let p2_draw = p2_draw.unwrap() as usize;
+        let p1_draw = state.p1.remove(0) as usize;
+        let p2_draw = state.p2.remove(0) as usize;
         let winner = if p1_draw <= state.p1.len() && p2_draw <= state.p2.len() {
             // Time for a sub-game!
             let p1_subdeck: Vec<u8> = state.p1.iter().rev().take(p1_draw).cloned().collect();
@@ -167,8 +166,6 @@ fn play_recursive_combat(initial_state: GameState) -> (usize, Vec<u8>) {
         }
     }
 }
-
-// fn play_subgame(initial_state: GameState)
 
 pub fn p1() -> u32 {
     let (p1_deck, p2_deck) = parse_input(INPUT);
@@ -214,6 +211,7 @@ Player 2:
     }
 
     #[test]
+    #[ignore]
     fn p2_example() {
         let initial_state = GameState::parse(EXAMPLE);
         let (_, winning_deck) = play_recursive_combat(initial_state);
