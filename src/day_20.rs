@@ -137,7 +137,15 @@ impl Tile {
         })
     }
 
+    fn reset(&mut self) {
+        for _ in 0..(4 - (self.status & 0b11)) {
+            self.rotate_90();
+        }
+        self.flip(self.status & 0b0100 != 0, self.status & 0b1000 != 0);
+    }
+
     fn find_fit(&mut self, neighbors: &[Option<u16>]) -> bool {
+        self.reset();
         for _ in 0..4 {
             if self.check_fit(neighbors) {
                 return true;
@@ -409,14 +417,7 @@ fn assemble_image(tiles: TileMap, tile_strs: HashMap<u16, &str>) -> TileData {
         for x in min_x..max_x + 1 {
             let tile = tiles.get(&(x, y)).unwrap();
             let mut data = tile_contents(tile_strs.get(&tile.id).unwrap());
-            if tile.id == 3079 {
-                println!("Tile 3079 status: {}", tile.status);
-                print_image("Tile 3079:", &data);
-                align_tile(tile.status, &mut data);
-                print_image("Tile 3079 (aligned):", &data);
-            } else {
-                align_tile(tile.status, &mut data);
-            }
+            align_tile(tile.status, &mut data);
             for (i, mut row) in data.drain(..).enumerate() {
                 tile_row[i].append(&mut row);
             }
@@ -424,10 +425,15 @@ fn assemble_image(tiles: TileMap, tile_strs: HashMap<u16, &str>) -> TileData {
         image.append(&mut tile_row);
     }
 
-    // println!("Base image:");
+    println!("Base image:");
     print_image("image:", &image);
 
-    // for i in 0..
+    for status in 1..=0b1111 {
+        let mut modified = image.clone();
+        align_tile(status, &mut modified);
+        println!();
+        print_image(format!("Modified {:04b}:", status).as_str(), &modified);
+    }
 
     image
 }
