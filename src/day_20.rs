@@ -11,8 +11,8 @@ static LEFT: usize = 3;
 // Status nibble:
 // [0] [0] [0 0]
 //  |   |    |--> 0-3 for rotation count
-//  |   |--> flipped horizontal
-//  |--> flipped vertical
+//  |   |--> flipped vertical
+//  |--> flipped horizontal
 
 #[derive(Debug, Clone)]
 struct Tile {
@@ -243,7 +243,7 @@ fn find_open_positions(image: &TileMap) -> HashSet<(i32, i32)> {
     results
 }
 
-fn solve(tiles: Vec<Tile>) -> TileMap {
+fn solve(tiles: &Vec<Tile>) -> TileMap {
     // build a map of id to tile for remaining tiles (eaiser to deal with as a map)
     let mut remaining: HashMap<u16, Tile> =
         tiles.iter().map(|tile| (tile.id, tile.clone())).collect();
@@ -294,8 +294,149 @@ fn solve(tiles: Vec<Tile>) -> TileMap {
 
 pub fn p1() -> u64 {
     let tiles = parse_tiles(INPUT);
-    let image = solve(tiles);
+    let image = solve(&tiles);
     multiply_corners(&image)
+}
+
+fn get_tile_data<'a>(input: &'a str) -> HashMap<u16, &'a str> {
+    input
+        .split("\n\n")
+        .map(|tile| {
+            let mut split = tile.split(":\n");
+            let id: u16 = split
+                .next()
+                .unwrap()
+                .strip_prefix("Tile ")
+                .unwrap()
+                .parse()
+                .unwrap();
+            let data = split.next().unwrap();
+            (id, data)
+        })
+        .collect()
+}
+
+type TileData = Vec<Vec<char>>;
+
+fn tile_contents(tile_data: &str) -> TileData {
+    tile_data
+        .lines()
+        .skip(1)
+        .take(8)
+        .map(|line| line.chars().skip(1).take(8).collect())
+        .collect()
+}
+
+fn transpose(data: &mut TileData) {
+    let len = data.len();
+    for y in 0..len - 1 {
+        for x in (y + 1)..len {
+            let a = data[x][y];
+            let b = data[y][x];
+            data[x][y] = b;
+            data[y][x] = a;
+        }
+    }
+}
+
+fn reverse_rows(data: &mut TileData) {
+    data.iter_mut().for_each(|row| row.reverse());
+}
+
+fn reverse_cols(data: &mut TileData) {
+    data.reverse();
+}
+
+fn align_tile(status: u8, data: &mut TileData) {
+    // flip vertical
+    if status & 0b0100 != 0 {
+        reverse_cols(data);
+    }
+    // flip horizontal
+    if status & 0b1000 != 0 {
+        reverse_rows(data);
+    }
+
+    let rot = status & 0b11;
+
+    match rot {
+        1 => {
+            transpose(data);
+            reverse_rows(data);
+        }
+        2 => {
+            reverse_rows(data);
+            reverse_cols(data);
+        }
+        3 => {
+            reverse_rows(data);
+            transpose(data);
+        }
+        _ => {} // 0 or anything else, which won't happen
+    }
+}
+
+fn print_image(prefix: &str, data: &TileData) {
+    println!("{}", prefix);
+    data.iter().for_each(|row| {
+        println!("{}", row.into_iter().collect::<String>());
+    });
+}
+
+fn assemble_image(tiles: TileMap, tile_strs: HashMap<u16, &str>) -> TileData {
+    let mut image = Vec::new();
+    let mut tile_row: TileData;
+    // Find the bounds of our map; since we start with an arbitrary tile
+    // at (0, 0), the bounds aren't obvious
+    let mut min_x = 0;
+    let mut max_x = 0;
+    let mut min_y = 0;
+    let mut max_y = 0;
+    tiles.keys().for_each(|&(x, y)| {
+        min_x = std::cmp::min(x, min_x);
+        max_x = std::cmp::max(x, max_x);
+        min_y = std::cmp::min(y, min_y);
+        max_y = std::cmp::max(y, max_y);
+    });
+    println!(
+        "Assmebling {} x {} image",
+        max_x - min_x + 1,
+        max_y - min_y + 1
+    );
+
+    for y in min_y..max_y + 1 {
+        tile_row = vec![Vec::new(); 8];
+        for x in min_x..max_x + 1 {
+            let tile = tiles.get(&(x, y)).unwrap();
+            let mut data = tile_contents(tile_strs.get(&tile.id).unwrap());
+            if tile.id == 3079 {
+                println!("Tile 3079 status: {}", tile.status);
+                print_image("Tile 3079:", &data);
+                align_tile(tile.status, &mut data);
+                print_image("Tile 3079 (aligned):", &data);
+            } else {
+                align_tile(tile.status, &mut data);
+            }
+            for (i, mut row) in data.drain(..).enumerate() {
+                tile_row[i].append(&mut row);
+            }
+        }
+        image.append(&mut tile_row);
+    }
+
+    // println!("Base image:");
+    print_image("image:", &image);
+
+    // for i in 0..
+
+    image
+}
+
+fn find_monsters(input: &str) {
+    let tiles = parse_tiles(input);
+    let image = solve(&tiles);
+    multiply_corners(&image);
+    assemble_image(image, get_tile_data(input));
 }
 
 pub fn p2() -> u64 {
@@ -321,20 +462,39 @@ mod test {
     #[test]
     fn p1_example() {
         let tiles = parse_tiles(EXAMPLE);
-        let image = solve(tiles);
+        let image = solve(&tiles);
         assert_eq!(20899048083289, multiply_corners(&image));
     }
 
     #[test]
     fn p1_correct_answer() {
         let tiles = parse_tiles(INPUT);
-        let image = solve(tiles);
+        let image = solve(&tiles);
         assert_eq!(174206308298779, multiply_corners(&image));
     }
 
-    // #[test]
-    // fn p2_example() {
-    // }
+    #[test]
+    fn transpose_data() {
+        let input = vec![
+            vec!['1', '2', '3'],
+            vec!['4', '5', '6'],
+            vec!['7', '8', '9'],
+        ];
+        let mut transposed = input.clone();
+        transpose(&mut transposed);
+        let expected = vec![
+            vec!['1', '4', '7'],
+            vec!['2', '5', '8'],
+            vec!['3', '6', '9'],
+        ];
+        assert_eq!(expected, transposed);
+    }
+
+    #[test]
+    fn p2_example() {
+        find_monsters(&EXAMPLE);
+        assert!(false);
+    }
 
     // #[test]
     // fn p2_correct_answer() {
