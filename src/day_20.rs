@@ -8,10 +8,17 @@ static RIGHT: usize = 1;
 static BOT: usize = 2;
 static LEFT: usize = 3;
 
+// Status nibble:
+// [0] [0] [0 0]
+//  |   |    |--> 0-3 for rotation count
+//  |   |--> flipped horizontal
+//  |--> flipped vertical
+
 #[derive(Debug, Clone)]
 struct Tile {
     id: u16,
     sides: [u16; 4],
+    status: u8,
 }
 
 impl Tile {
@@ -79,7 +86,11 @@ impl Tile {
             .fold(0, fold_bits)
             >> 1;
 
-        Self { id, sides }
+        Self {
+            id,
+            sides,
+            status: 0,
+        }
     }
 
     fn rotate_90(&mut self) {
@@ -90,6 +101,10 @@ impl Tile {
         new_sides[3] = self.sides[0];
 
         self.sides = new_sides;
+        // clear and reassign rotation
+        let rot_status = ((self.status & 0b11) + 1) % 4;
+        self.status &= 0b1100;
+        self.status |= rot_status;
     }
 
     fn flip(&mut self, vertical: bool, horizontal: bool) {
@@ -101,6 +116,7 @@ impl Tile {
             // reverse left & right sides
             new_sides[LEFT] = reverse_10_bits(self.sides[LEFT]);
             new_sides[RIGHT] = reverse_10_bits(self.sides[RIGHT]);
+            self.status ^= 0b0100;
         }
         if horizontal {
             // swap left & right sides (flipping to preserve clockwise read direction)
@@ -109,14 +125,12 @@ impl Tile {
             // reverse top & bottom sides
             new_sides[TOP] = reverse_10_bits(self.sides[TOP]);
             new_sides[BOT] = reverse_10_bits(self.sides[BOT]);
+            self.status ^= 0b1000;
         }
         self.sides = new_sides;
     }
 
     fn check_fit(&self, neighbors: &[Option<u16>]) -> bool {
-        if self.id == 3079 {
-            println!("Check {:?}", self.sides);
-        }
         (0..4).all(|i| match neighbors[i] {
             Some(needed) => self.sides[i] == needed,
             None => true,
@@ -188,6 +202,14 @@ fn multiply_corners(map: &TileMap) -> u64 {
                 None => print!("____ "),
             }
         }
+        println!();
+        for y in min_y..max_y + 1 {
+            match map.get(&(x, y)) {
+                Some(tile) => print!("{:4} ", tile.status),
+                None => print!("____ "),
+            }
+        }
+        println!();
     }
     println!();
 
