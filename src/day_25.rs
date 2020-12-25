@@ -17,8 +17,6 @@ fn find_loop_size(subject: usize, target: usize) -> usize {
 
 fn get_encryption_key(key_1: usize, key_2: usize) -> usize {
     let loop_2 = find_loop_size(7, key_2);
-
-    println!("Applying {} loops to {}", loop_2, key_1);
     let mut value = 1;
     for _ in 0..loop_2 {
         value = apply_transform(value, key_1);
@@ -30,15 +28,9 @@ pub fn p1() -> usize {
     get_encryption_key(INPUT.0, INPUT.1)
 }
 
-pub fn p2() -> usize {
-    0
-}
-
 #[cfg(test)]
 mod test {
-    use super::{find_loop_size, get_encryption_key};
-
-    // use super::*;
+    use super::*;
 
     #[test]
     fn p1_example() {
@@ -48,15 +40,8 @@ mod test {
         assert_eq!(14897079, get_encryption_key(5764801, 17807724));
     }
 
-    // #[test]
-    // fn p1_correct_answer() {
-    // }
-
-    // #[test]
-    // fn p2_example() {
-    // }
-
-    // #[test]
-    // fn p2_correct_answer() {
-    // }
+    #[test]
+    fn p1_correct_answer() {
+        assert_eq!(11576351, get_encryption_key(INPUT.0, INPUT.1));
+    }
 }

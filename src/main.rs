@@ -60,7 +60,7 @@ fn main() {
         22 => format!("P1:\n{}\n\nP2:\n{}", day_22::p1(), day_22::p2()),
         23 => format!("P1:\n{}\n\nP2:\n{}", day_23::p1(), day_23::p2()),
         24 => format!("P1:\n{}\n\nP2:\n{}", day_24::p1(), day_24::p2()),
-        25 => format!("P1:\n{}\n\nP2:\n{}", day_25::p1(), day_25::p2()),
+        25 => format!("P1:\n{}", day_25::p1()),
         _ => "".to_string(),
     };
 
