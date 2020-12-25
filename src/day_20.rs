@@ -196,26 +196,6 @@ fn multiply_corners(map: &TileMap) -> u64 {
         max_y = std::cmp::max(y, max_y);
     });
 
-    // Visualize tile map for debugging (also it looks nice)
-    for y in min_y..max_y + 1 {
-        println!();
-        for x in min_x..max_x + 1 {
-            match map.get(&(x, y)) {
-                Some(tile) => print!("{} ", tile.id),
-                None => print!("____ "),
-            }
-        }
-        println!();
-        for x in min_x..max_x + 1 {
-            match map.get(&(x, y)) {
-                Some(tile) => print!("{:04b} ", tile.status),
-                None => print!("____ "),
-            }
-        }
-        println!();
-    }
-    println!();
-
     // Multiply the four corners
     vec![
         map.get(&(min_x, min_y)).unwrap().id as u64,
@@ -379,13 +359,6 @@ fn align_tile(status: u8, data: &mut TileData) {
     }
 }
 
-fn print_image(prefix: &str, data: &TileData) {
-    println!("{}", prefix);
-    data.iter().for_each(|row| {
-        println!("{}", row.iter().collect::<String>());
-    });
-}
-
 fn assemble_image(tiles: TileMap, tile_strs: HashMap<u16, &str>) -> TileData {
     let mut image = Vec::new();
     let mut tile_row: TileData;
@@ -415,26 +388,76 @@ fn assemble_image(tiles: TileMap, tile_strs: HashMap<u16, &str>) -> TileData {
         image.append(&mut tile_row);
     }
 
-    print_image("base image:", &image);
-
-    for status in 1..=0b1111 {
-        let mut modified_image = image.clone();
-        align_tile(status, &mut modified_image);
-        // let montser_count = count_sea_monsters()
-    }
-
     image
 }
 
-fn find_monsters(input: &str) {
-    let tiles = parse_tiles(input);
-    let image = solve(&tiles);
-    multiply_corners(&image);
-    assemble_image(image, get_tile_data(input));
+lazy_static! {
+    static ref MONSTER_PATTERN: Vec<(usize, usize)> = vec![
+        // tail
+        (0, 1),
+        (1, 2),
+        // back hump
+        (4, 2),
+        (5, 1),
+        (6, 1),
+        (7, 2),
+        // front hump
+        (10, 2),
+        (11, 1),
+        (12, 1),
+        (13, 2),
+        // neck & head
+        (16, 2),
+        (17, 1),
+        (18, 0),
+        (18, 1),
+        (19, 1),
+    ];
+}
+static MONSTER_DIMS: (usize, usize) = (19, 2);
+
+fn mark_monsters(map: &mut TileData) -> bool {
+    let dim = map.len();
+    let mut found_any = false;
+    for y in 0..(dim - MONSTER_DIMS.1) {
+        for x in 0..(dim - MONSTER_DIMS.0) {
+            let found = MONSTER_PATTERN.iter().all(|offset| {
+                let x_off = x + offset.0;
+                let y_off = y + offset.1;
+                map[y_off][x_off] == '#'
+            });
+            if found {
+                // mark
+                MONSTER_PATTERN.iter().for_each(|offset| {
+                    let x_off = x + offset.0;
+                    let y_off = y + offset.1;
+                    map[y_off][x_off] = '0';
+                });
+                found_any = true;
+            }
+        }
+    }
+    found_any
 }
 
-pub fn p2() -> u64 {
-    0
+fn check_water_roughness(input: &str) -> usize {
+    let tiles = parse_tiles(input);
+    let image = solve(&tiles);
+    let map = assemble_image(image, get_tile_data(input));
+
+    // Iterate over all possible orientations of the data
+    for orientation in 0..=0b1111 {
+        let mut modified_map = map.clone();
+        align_tile(orientation, &mut modified_map);
+        if mark_monsters(&mut modified_map) {
+            return modified_map.iter().flatten().filter(|&c| *c == '#').count();
+        }
+    }
+    panic!("No sea monsters found!");
+}
+
+pub fn p2() -> usize {
+    check_water_roughness(&INPUT)
 }
 
 #[cfg(test)]
@@ -501,11 +524,11 @@ mod test {
 
     #[test]
     fn p2_example() {
-        find_monsters(&EXAMPLE);
-        assert!(false);
+        assert_eq!(273, check_water_roughness(&EXAMPLE));
     }
 
-    // #[test]
-    // fn p2_correct_answer() {
-    // }
+    #[test]
+    fn p2_correct_answer() {
+        assert_eq!(2409, check_water_roughness(&INPUT));
+    }
 }
