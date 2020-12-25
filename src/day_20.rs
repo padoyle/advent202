@@ -95,10 +95,10 @@ impl Tile {
 
     fn rotate_90(&mut self) {
         let mut new_sides = [0; 4];
-        new_sides[0] = self.sides[1];
-        new_sides[1] = self.sides[2];
-        new_sides[2] = self.sides[3];
-        new_sides[3] = self.sides[0];
+        new_sides[0] = self.sides[3];
+        new_sides[1] = self.sides[0];
+        new_sides[2] = self.sides[1];
+        new_sides[3] = self.sides[2];
 
         self.sides = new_sides;
         // clear and reassign rotation
@@ -137,15 +137,7 @@ impl Tile {
         })
     }
 
-    fn reset(&mut self) {
-        for _ in 0..(4 - (self.status & 0b11)) {
-            self.rotate_90();
-        }
-        self.flip(self.status & 0b0100 != 0, self.status & 0b1000 != 0);
-    }
-
     fn find_fit(&mut self, neighbors: &[Option<u16>]) -> bool {
-        self.reset();
         for _ in 0..4 {
             if self.check_fit(neighbors) {
                 return true;
@@ -173,6 +165,9 @@ impl Tile {
             }
             self.rotate_90();
         }
+        // reset state
+        self.flip(false, true);
+        assert!(self.status == 0);
 
         false
     }
@@ -202,18 +197,18 @@ fn multiply_corners(map: &TileMap) -> u64 {
     });
 
     // Visualize tile map for debugging (also it looks nice)
-    for x in min_x..max_x + 1 {
+    for y in min_y..max_y + 1 {
         println!();
-        for y in min_y..max_y + 1 {
+        for x in min_x..max_x + 1 {
             match map.get(&(x, y)) {
                 Some(tile) => print!("{} ", tile.id),
                 None => print!("____ "),
             }
         }
         println!();
-        for y in min_y..max_y + 1 {
+        for x in min_x..max_x + 1 {
             match map.get(&(x, y)) {
-                Some(tile) => print!("{:4} ", tile.status),
+                Some(tile) => print!("{:04b} ", tile.status),
                 None => print!("____ "),
             }
         }
@@ -387,7 +382,7 @@ fn align_tile(status: u8, data: &mut TileData) {
 fn print_image(prefix: &str, data: &TileData) {
     println!("{}", prefix);
     data.iter().for_each(|row| {
-        println!("{}", row.into_iter().collect::<String>());
+        println!("{}", row.iter().collect::<String>());
     });
 }
 
@@ -406,11 +401,6 @@ fn assemble_image(tiles: TileMap, tile_strs: HashMap<u16, &str>) -> TileData {
         min_y = std::cmp::min(y, min_y);
         max_y = std::cmp::max(y, max_y);
     });
-    println!(
-        "Assmebling {} x {} image",
-        max_x - min_x + 1,
-        max_y - min_y + 1
-    );
 
     for y in min_y..max_y + 1 {
         tile_row = vec![Vec::new(); 8];
@@ -425,14 +415,12 @@ fn assemble_image(tiles: TileMap, tile_strs: HashMap<u16, &str>) -> TileData {
         image.append(&mut tile_row);
     }
 
-    println!("Base image:");
-    print_image("image:", &image);
+    print_image("base image:", &image);
 
     for status in 1..=0b1111 {
-        let mut modified = image.clone();
-        align_tile(status, &mut modified);
-        println!();
-        print_image(format!("Modified {:04b}:", status).as_str(), &modified);
+        let mut modified_image = image.clone();
+        align_tile(status, &mut modified_image);
+        // let montser_count = count_sea_monsters()
     }
 
     image
@@ -492,6 +480,21 @@ mod test {
             vec!['1', '4', '7'],
             vec!['2', '5', '8'],
             vec!['3', '6', '9'],
+        ];
+        assert_eq!(expected, transposed);
+        let input = vec![
+            vec!['0', '1', '2', '3'],
+            vec!['4', '5', '6', '7'],
+            vec!['8', '9', 'A', 'B'],
+            vec!['C', 'D', 'E', 'F'],
+        ];
+        let mut transposed = input.clone();
+        transpose(&mut transposed);
+        let expected = vec![
+            vec!['0', '4', '8', 'C'],
+            vec!['1', '5', '9', 'D'],
+            vec!['2', '6', 'A', 'E'],
+            vec!['3', '7', 'B', 'F'],
         ];
         assert_eq!(expected, transposed);
     }
